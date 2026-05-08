@@ -55,10 +55,13 @@ def remove_outliers(df, column_name):
 df = remove_outliers(df, Col.IDADE)
 df = remove_outliers(df, Col.RENDA_ANUAL) 
 
-## Gráficos de Histograma
+
+# 8. Montagem de gráficos com matplotlib
+# -----------------------------------------------------------------------
+
 # Separando adimplentes e inadimplentes
-adimplentes = df_credito[df_credito["inadimplente"] == 0]
-inadimplentes = df_credito[df_credito["inadimplente"] == 1]
+adimplentes = df_credito[df_credito[Col.INADIMPLENTE] == 0]
+inadimplentes = df_credito[df_credito[Col.INADIMPLENTE] == 1]
 
 # Visualização da distribuição de renda para adimplentes e inadimplentes
 plt.figure(figsize=(10, 4))
