@@ -3,6 +3,10 @@ import random
 import math
 import os
 
+# Random seed for reproducibility
+RANDOM_SEED = 42
+random.seed(RANDOM_SEED)
+
 n_records = 1000
 
 data = []
