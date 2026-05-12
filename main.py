@@ -55,6 +55,31 @@ def remove_outliers(df, column_name):
 df = remove_outliers(df, Col.IDADE)
 df = remove_outliers(df, Col.RENDA_ANUAL) 
 
+# 4. Cálculo Score Ajustado
+# -----------------------------------------------------------------------
+
+# Colunas para o cálculo do score ajustado
+renda = df[Col.RENDA_ANUAL].values
+idade = df[Col.IDADE].values
+score_externo = df[Col.SCORE_EXTERNO].values
+
+# Definir Fatores Renda
+
+# Escolhemos quando a renda for maior que 150.000 recebe 1.2 a mais no score
+# Quando a renda estiver entre 50.000 e 150.000 mantém o score
+# Quando a renda for menor que 50.000 recebe 0.8 a menos no score
+fator_renda = np.where(renda > 150000, 1.2, np.where(renda >= 50000, 1.0, 0.8))
+
+# Escolhemos quando a idade for maior que 50 recebe 1.2 a mais no score
+# Quando a idade estiver entre 25 e 50 mantém o score
+# Quando a idade for menor que 25 recebe 0.8 a menos no score
+fator_idade = np.where(idade > 50, 1.2, np.where(idade >= 25, 1.0, 0.8))
+
+score_ajustado = score_externo * fator_renda * fator_idade
+
+df['score_ajustado'] = score_ajustado
+
+df.to_csv(CSV_PATH, index=False)
 
 # 8. Montagem de gráficos com matplotlib
 # -----------------------------------------------------------------------

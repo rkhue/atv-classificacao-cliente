@@ -5,7 +5,6 @@ import os
 diretorio = os.path.dirname(os.path.abspath(__file__))
     
 credito_banco = os.path.join(diretorio, 'credito_banco.csv')
-credito_banco_ajustado = os.path.join(diretorio, 'credito_banco_ajustado.csv')
 
 df = pd.read_csv(credito_banco)
 
@@ -27,4 +26,4 @@ score_ajustado = score_externo * fator_renda * fator_idade
 
 df['score_ajustado'] = score_ajustado
 
-df.to_csv(credito_banco_ajustado, index=False)
+df.to_csv(credito_banco, index=False)
