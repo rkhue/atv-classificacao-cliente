@@ -1,7 +1,7 @@
 from pathlib import Path
 import pandas as pd
 import numpy as np
-import matplotlib.pyplot as plt
+
 
 # 1. Criar diretório do DUMP (arquivos temporários)
 # -----------------------------------------------------------------------
@@ -12,7 +12,7 @@ DUMP_DIR = CURRENT_DIR / 'out'
 DUMP_DIR.mkdir(exist_ok=True)
 
 ## 2. Definir o caminho do arquivo CSV
-CSV_PATH = CURRENT_DIR / 'assets' / 'credito_banco.csv'
+CSV_PATH = CURRENT_DIR / 'credito_banco.csv'
 
 # 2. Ler o dataset
 # -----------------------------------------------------------------------
@@ -54,28 +54,3 @@ def remove_outliers(df, column_name):
 ## Somente idade e renda
 df = remove_outliers(df, Col.IDADE)
 df = remove_outliers(df, Col.RENDA_ANUAL) 
-
-
-# 8. Montagem de gráficos com matplotlib
-# -----------------------------------------------------------------------
-
-# Separando adimplentes e inadimplentes
-adimplentes = df_credito[df_credito[Col.INADIMPLENTE] == 0]
-inadimplentes = df_credito[df_credito[Col.INADIMPLENTE] == 1]
-
-# Visualização da distribuição de renda para adimplentes e inadimplentes
-plt.figure(figsize=(10, 4))
-
-plt.subplot(1, 2, 1)
-plt.hist(adimplentes.renda_anual, color='purple', edgecolor='white')
-plt.title("Distribuição de Renda de Adimplentes")
-plt.xlabel("Renda (R$)")
-plt.ylabel("Frequência")
-
-plt.subplot(1, 2, 2)
-plt.hist(inadimplentes.renda_anual, color='orange', edgecolor='white')
-plt.title("Distribuição de Renda de Inadimplentes")
-plt.xlabel("Renda (R$)")
-plt.ylabel("Frequência")
-
-plt.show()
