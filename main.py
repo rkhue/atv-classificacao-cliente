@@ -68,12 +68,12 @@ score_externo = df[Col.SCORE_EXTERNO].values
 # Escolhemos quando a renda for maior que 150.000 recebe 1.2 a mais no score
 # Quando a renda estiver entre 50.000 e 150.000 mantém o score
 # Quando a renda for menor que 50.000 recebe 0.8 a menos no score
-fator_renda = np.where(renda > 150000, 1.2, np.where(renda >= 50000, 1.0, 0.8))
+fator_renda = np.where(renda > 150000, 2, np.where(renda >= 50000, 1.0, 0.5))
 
 # Escolhemos quando a idade for maior que 50 recebe 1.2 a mais no score
 # Quando a idade estiver entre 25 e 50 mantém o score
 # Quando a idade for menor que 25 recebe 0.8 a menos no score
-fator_idade = np.where(idade > 50, 1.2, np.where(idade >= 25, 1.0, 0.8))
+fator_idade = np.where(idade > 50, 2, np.where(idade >= 25, 1.0, 0.5))
 
 score_ajustado = score_externo * fator_renda * fator_idade
 
@@ -88,19 +88,78 @@ df.to_csv(CSV_PATH, index=False)
 adimplentes = df_credito[df_credito[Col.INADIMPLENTE] == 0]
 inadimplentes = df_credito[df_credito[Col.INADIMPLENTE] == 1]
 
-# Visualização da distribuição de renda para adimplentes e inadimplentes
-plt.figure(figsize=(10, 4))
+# Criar figura com 3 gráficos
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
-plt.subplot(1, 2, 1)
-plt.hist(adimplentes.renda_anual, color='purple', edgecolor='white')
-plt.title("Distribuição de Renda de Adimplentes")
-plt.xlabel("Renda (R$)")
-plt.ylabel("Frequência")
+# -----------------------------------------------------------------------
+# Gráfico 1 - Adimplentes
+# -----------------------------------------------------------------------
 
-plt.subplot(1, 2, 2)
-plt.hist(inadimplentes.renda_anual, color='orange', edgecolor='white')
-plt.title("Distribuição de Renda de Inadimplentes")
-plt.xlabel("Renda (R$)")
-plt.ylabel("Frequência")
+axes[0].hist(
+    adimplentes.renda_anual,
+    color='purple',
+    edgecolor='white'
+)
 
+axes[0].set_title("Renda de Adimplentes")
+axes[0].set_xlabel("Renda (R$)")
+axes[0].set_ylabel("Frequência")
+
+# -----------------------------------------------------------------------
+# Gráfico 2 - Inadimplentes
+# -----------------------------------------------------------------------
+
+axes[1].hist(
+    inadimplentes.renda_anual,
+    color='orange',
+    edgecolor='white'
+)
+
+axes[1].set_title("Renda de Inadimplentes")
+axes[1].set_xlabel("Renda (R$)")
+axes[1].set_ylabel("Frequência")
+
+# -----------------------------------------------------------------------
+# Gráfico 3 - Heatmap
+# -----------------------------------------------------------------------
+
+colunas = [
+    "renda_anual",
+    "idade",
+    "divida_atual",
+    "score_ajustado"
+]
+
+correlacao = df[colunas].corr()
+
+cax = axes[2].matshow(
+    correlacao,
+    cmap="coolwarm"
+)
+
+# Barra lateral do heatmap
+fig.colorbar(cax, ax=axes[2], fraction=0.046, pad=0.04)
+
+axes[2].set_xticks(range(len(colunas)))
+axes[2].set_yticks(range(len(colunas)))
+
+axes[2].set_xticklabels(colunas, rotation=45)
+axes[2].set_yticklabels(colunas)
+
+# Valores da correlação
+for i in range(len(colunas)):
+    for j in range(len(colunas)):
+        axes[2].text(
+            j,
+            i,
+            f"{correlacao.iloc[i, j]:.2f}",
+            va="center",
+            ha="center"
+        )
+
+axes[2].set_title("Heatmap de Correlação")
+
+# -----------------------------------------------------------------------
+
+plt.tight_layout()
 plt.show()
