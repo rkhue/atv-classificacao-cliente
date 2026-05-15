@@ -34,8 +34,9 @@ class Col:
     SCORE_EXTERNO = 'score_externo'
     INADIMPLENTE = 'inadimplente'
 
-    # Score ajustado
+    # Colunas novas
     SCORE_AJUSTADO = 'score_ajustado'
+    CHANCE_INADIMPLENCIA = 'Chance_Inadimplencia(%)'
 
 # 3. Limpeza e pré-processamento
 # -----------------------------------------------------------------------
@@ -88,11 +89,11 @@ df_credito[Col.SCORE_AJUSTADO] = score_ajustado
 # 4. Machine Learning - Classificação
 # -----------------------------------------------------------------------
 
-## Separando dados de treinamento para o modelo
-x = df_credito.drop(columns=['inadimplente'])
-y = df_credito['inadimplente']
+## 4.1 Separando dados de treinamento para o modelo
+x = df_credito.drop(columns=[Col.INADIMPLENTE])
+y = df_credito[Col.INADIMPLENTE]
 
-## Realizando testes
+## 4.2 Definindo os dados de treino e teste
 x_treino, x_teste, y_treino, y_teste = train_test_split(
     x,
     y,
@@ -100,7 +101,7 @@ x_treino, x_teste, y_treino, y_teste = train_test_split(
     random_state=42,
 )
 
-## Definindo modelo Classifier com algumas informações que ajudaram na sua eficiêmcia
+## 4.3 Definindo modelo Classifier com algumas informações que ajudaram na sua eficiêmcia
 modelo = RandomForestClassifier(
     n_estimators=300,
     # max_depth=10, 
@@ -110,13 +111,13 @@ modelo = RandomForestClassifier(
     random_state=42
 )
 
-## Treinando modelo
+## 4.4 Treinando modelo
 modelo.fit(x_treino, y_treino)
 
-## Previsões do modelo 0 e 1
+## 4.5 Previsões do modelo 0 e 1
 previsoes = modelo.predict(x_teste)
 
-## Mostrando taxa de acuracy, f1_score e recall do modelo
+## 4.6 Mostrando taxa de acuracy, f1_score e recall do modelo
 accuracy = accuracy_score(y_teste, previsoes)
 recall = recall_score(y_teste, previsoes)
 f1 = f1_score(y_teste, previsoes)
@@ -125,42 +126,38 @@ print("Accuracy:", accuracy)
 print("Recall:", recall)
 print("F1-score:", f1)
 
-## Mostrando a probavilidade em porcentagem de um usuário específico 
-
-# print("Chance de inadimplente de um cliente específico:\t",modelo.predict_proba(x_teste)[:, 1][0])
+## 4.7 Mostrando a probavilidade em porcentagem de um usuário específico 
 
 df_inadimplencia = df_credito.copy()
 
-df_inadimplencia['Chance_Inadimplencia(%)'] = modelo.predict_proba(
+df_inadimplencia[Col.CHANCE_INADIMPLENCIA] = modelo.predict_proba(
     x
 )[:, 1]*100
 
 print(df_inadimplencia)
 
+
+# 5. RPA - Exportar clientes de alto risco para Excel no DUMP
 # -----------------------------------------------------------------------
-# Exportar lista de clientes com alto risco para Excel
-# -----------------------------------------------------------------------
-alto_risco = df_inadimplencia[df_inadimplencia['Chance_Inadimplencia(%)'] >= 50]
+alto_risco = df_inadimplencia[df_inadimplencia[Col.CHANCE_INADIMPLENCIA] >= 50]
 data_atual = datetime.now().strftime("%Y-%m-%d")
 nome_arquivo = f"clientes_alto_risco_{data_atual}.xlsx"
 caminho_arquivo = DUMP_DIR / nome_arquivo
 alto_risco.to_excel(caminho_arquivo, index=False)
 print(f"\nLista de clientes de alto risco exportada para: {caminho_arquivo}\n")
 
-# 8. Montagem de gráficos com matplotlib
+# 6. Montagem de gráficos com matplotlib e seaborn
 # -----------------------------------------------------------------------
 
-# Separando adimplentes e inadimplentes
+# 6.1 Separando adimplentes e inadimplentes
 adimplentes = df_credito[df_credito[Col.INADIMPLENTE] == 0]
 inadimplentes = df_credito[df_credito[Col.INADIMPLENTE] == 1]
 
-# Criar figura com 3 gráficos
+# 6.2 Criar figura com 3 gráficos
 fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
-# -----------------------------------------------------------------------
-# Gráfico 1 - Adimplentes
-# -----------------------------------------------------------------------
-
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# 6.3 Montagem do Gráfico 1 - Histograma da Renda de Adimplentes
 axes[0].hist(
     adimplentes.renda_anual,
     color='purple',
@@ -171,10 +168,8 @@ axes[0].set_title("Renda de Adimplentes")
 axes[0].set_xlabel("Renda (R$)")
 axes[0].set_ylabel("Frequência")
 
-# -----------------------------------------------------------------------
-# Gráfico 2 - Inadimplentes
-# -----------------------------------------------------------------------
-
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# 6.4 Montagem do Gráfico 2 - Histograma da Renda de Inadimplentes
 axes[1].hist(
     inadimplentes.renda_anual,
     color='orange',
@@ -185,10 +180,8 @@ axes[1].set_title("Renda de Inadimplentes")
 axes[1].set_xlabel("Renda (R$)")
 axes[1].set_ylabel("Frequência")
 
-# -----------------------------------------------------------------------
-# Gráfico 3 - Heatmap
-# -----------------------------------------------------------------------
-
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# 6.5 Montagem do Gráfico 3 - Heatmap de Correlação entre Renda, Idade, Dívida e Score Ajustado
 colunas = [
     "renda_anual",
     "idade",
@@ -203,7 +196,7 @@ cax = axes[2].matshow(
     cmap="coolwarm"
 )
 
-# Barra lateral do heatmap
+# 6.5.2 Barra lateral do heatmap
 fig.colorbar(cax, ax=axes[2], fraction=0.046, pad=0.04)
 
 axes[2].set_xticks(range(len(colunas)))
@@ -212,7 +205,7 @@ axes[2].set_yticks(range(len(colunas)))
 axes[2].set_xticklabels(colunas, rotation=45)
 axes[2].set_yticklabels(colunas)
 
-# Valores da correlação
+# 6.5.3 Valores da correlação
 for i in range(len(colunas)):
     for j in range(len(colunas)):
         axes[2].text(
@@ -225,7 +218,7 @@ for i in range(len(colunas)):
 
 axes[2].set_title("Heatmap de Correlação")
 
-# -----------------------------------------------------------------------
-
+# ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+# 6.6 Ajustar layout e mostrar gráficos
 plt.tight_layout()
 plt.show()
