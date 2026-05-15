@@ -126,8 +126,15 @@ print("F1-score:", f1)
 
 ## Mostrando a probavilidade em porcentagem de um usuário específico 
 
-print("Chance de inadimplente de um cliente específico:\t",modelo.predict_proba(x_teste)[:, 1][0])
+# print("Chance de inadimplente de um cliente específico:\t",modelo.predict_proba(x_teste)[:, 1][0])
 
+df_inadimplencia = df_credito.copy()
+
+df_inadimplencia['Chance_Inadimplencia(%)'] = modelo.predict_proba(
+    x
+)[:, 1]*100
+
+print(df_inadimplencia)
 
 # 8. Montagem de gráficos com matplotlib
 # -----------------------------------------------------------------------
