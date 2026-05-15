@@ -1,4 +1,5 @@
 from pathlib import Path
+from datetime import datetime
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -135,6 +136,16 @@ df_inadimplencia['Chance_Inadimplencia(%)'] = modelo.predict_proba(
 )[:, 1]*100
 
 print(df_inadimplencia)
+
+# -----------------------------------------------------------------------
+# Exportar lista de clientes com alto risco para Excel
+# -----------------------------------------------------------------------
+alto_risco = df_inadimplencia[df_inadimplencia['Chance_Inadimplencia(%)'] >= 50]
+data_atual = datetime.now().strftime("%Y-%m-%d")
+nome_arquivo = f"clientes_alto_risco_{data_atual}.xlsx"
+caminho_arquivo = DUMP_DIR / nome_arquivo
+alto_risco.to_excel(caminho_arquivo, index=False)
+print(f"\nLista de clientes de alto risco exportada para: {caminho_arquivo}\n")
 
 # 8. Montagem de gráficos com matplotlib
 # -----------------------------------------------------------------------
