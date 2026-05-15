@@ -15,7 +15,7 @@ DUMP_DIR = CURRENT_DIR / 'out'
 DUMP_DIR.mkdir(exist_ok=True)
 
 ## 2. Definir o caminho do arquivo CSV
-CSV_PATH = CURRENT_DIR / 'credito_banco.csv'
+CSV_PATH = CURRENT_DIR / 'credito_banco_realista.csv'
 
 # 2. Ler o dataset
 # -----------------------------------------------------------------------
@@ -58,27 +58,37 @@ def remove_outliers(df, column_name):
 df = remove_outliers(df, Col.IDADE)
 df = remove_outliers(df, Col.RENDA_ANUAL) 
 
+
+
+## Separando dados de treinamento para o modelo
 x = df.drop(columns=['inadimplente'])
 y = df['inadimplente']
 
-
+## Realizando testes
 x_treino, x_teste, y_treino, y_teste = train_test_split(
     x,
     y,
     test_size=0.2,
-    random_state=42
+    random_state=42,
 )
 
-
+## Definindo modelo Classifier com algumas informações que ajudaram na sua eficiêmcia
 modelo = RandomForestClassifier(
+    n_estimators=300,
+    # max_depth=10, 
+    min_samples_split=5,
+    min_samples_leaf=2,
     class_weight='balanced',
     random_state=42
 )
 
+## Treinando modelo
 modelo.fit(x_treino, y_treino)
 
-previsoes = modelo.predict_proba(x_teste)
+## Previsões do modelo 0 e 1
+previsoes = modelo.predict(x_teste)
 
+## Mostrando taxa de acuracy, f1_score e recall do modelo
 accuracy = accuracy_score(y_teste, previsoes)
 recall = recall_score(y_teste, previsoes)
 f1 = f1_score(y_teste, previsoes)
@@ -87,4 +97,5 @@ print("Accuracy:", accuracy)
 print("Recall:", recall)
 print("F1-score:", f1)
 
-print(previsoes)
+## Mostrando a probavilidade em porcentagem de um usuário específico 
+print("Chance de inadimplente:\t",modelo.predict_proba(x_teste)[:, 1][0])

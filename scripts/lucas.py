@@ -4,7 +4,7 @@ import matplotlib.pyplot as plt
 
 CURRENT_DIR = Path(__file__).parent
 
-CSV_PATH = CURRENT_DIR / "credito_banco.csv"
+CSV_PATH = CURRENT_DIR / "credito_banco_realista.csv"
 
 df_credito = pd.read_csv(CSV_PATH)
 
