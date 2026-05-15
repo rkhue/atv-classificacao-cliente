@@ -1,7 +1,11 @@
 from pathlib import Path
+from datetime import datetime
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import accuracy_score, recall_score, f1_score, classification_report
 
 # 1. Criar diretório do DUMP (arquivos temporários)
 # -----------------------------------------------------------------------
@@ -12,7 +16,7 @@ DUMP_DIR = CURRENT_DIR / 'out'
 DUMP_DIR.mkdir(exist_ok=True)
 
 ## 2. Definir o caminho do arquivo CSV
-CSV_PATH = CURRENT_DIR / 'assets' / 'credito_banco.csv'
+CSV_PATH = CURRENT_DIR / 'assets' / 'credito_banco_realista.csv'
 
 # 2. Ler o dataset
 # -----------------------------------------------------------------------
@@ -68,12 +72,12 @@ score_externo = df_credito[Col.SCORE_EXTERNO].values
 # Escolhemos quando a renda for maior que 150.000 recebe 1.2 a mais no score
 # Quando a renda estiver entre 50.000 e 150.000 mantém o score
 # Quando a renda for menor que 50.000 recebe 0.8 a menos no score
-fator_renda = np.where(renda > 150000, 1.2, np.where(renda >= 50000, 1.0, 0.8))
+fator_renda = np.where(renda > 150000, 2, np.where(renda >= 50000, 1.0, 0.5))
 
 # Escolhemos quando a idade for maior que 50 recebe 1.2 a mais no score
 # Quando a idade estiver entre 25 e 50 mantém o score
 # Quando a idade for menor que 25 recebe 0.8 a menos no score
-fator_idade = np.where(idade > 50, 1.2, np.where(idade >= 25, 1.0, 0.8))
+fator_idade = np.where(idade > 50, 2, np.where(idade >= 25, 1.0, 0.5))
 
 score_ajustado = score_externo * fator_renda * fator_idade
 
@@ -84,6 +88,64 @@ df_credito[Col.SCORE_AJUSTADO] = score_ajustado
 # 4. Machine Learning - Classificação
 # -----------------------------------------------------------------------
 
+## Separando dados de treinamento para o modelo
+x = df_credito.drop(columns=['inadimplente'])
+y = df_credito['inadimplente']
+
+## Realizando testes
+x_treino, x_teste, y_treino, y_teste = train_test_split(
+    x,
+    y,
+    test_size=0.2,
+    random_state=42,
+)
+
+## Definindo modelo Classifier com algumas informações que ajudaram na sua eficiêmcia
+modelo = RandomForestClassifier(
+    n_estimators=300,
+    # max_depth=10, 
+    min_samples_split=5,
+    min_samples_leaf=2,
+    class_weight='balanced',
+    random_state=42
+)
+
+## Treinando modelo
+modelo.fit(x_treino, y_treino)
+
+## Previsões do modelo 0 e 1
+previsoes = modelo.predict(x_teste)
+
+## Mostrando taxa de acuracy, f1_score e recall do modelo
+accuracy = accuracy_score(y_teste, previsoes)
+recall = recall_score(y_teste, previsoes)
+f1 = f1_score(y_teste, previsoes)
+
+print("Accuracy:", accuracy)
+print("Recall:", recall)
+print("F1-score:", f1)
+
+## Mostrando a probavilidade em porcentagem de um usuário específico 
+
+# print("Chance de inadimplente de um cliente específico:\t",modelo.predict_proba(x_teste)[:, 1][0])
+
+df_inadimplencia = df_credito.copy()
+
+df_inadimplencia['Chance_Inadimplencia(%)'] = modelo.predict_proba(
+    x
+)[:, 1]*100
+
+print(df_inadimplencia)
+
+# -----------------------------------------------------------------------
+# Exportar lista de clientes com alto risco para Excel
+# -----------------------------------------------------------------------
+alto_risco = df_inadimplencia[df_inadimplencia['Chance_Inadimplencia(%)'] >= 50]
+data_atual = datetime.now().strftime("%Y-%m-%d")
+nome_arquivo = f"clientes_alto_risco_{data_atual}.xlsx"
+caminho_arquivo = DUMP_DIR / nome_arquivo
+alto_risco.to_excel(caminho_arquivo, index=False)
+print(f"\nLista de clientes de alto risco exportada para: {caminho_arquivo}\n")
 
 # 8. Montagem de gráficos com matplotlib
 # -----------------------------------------------------------------------
@@ -92,19 +154,78 @@ df_credito[Col.SCORE_AJUSTADO] = score_ajustado
 adimplentes = df_credito[df_credito[Col.INADIMPLENTE] == 0]
 inadimplentes = df_credito[df_credito[Col.INADIMPLENTE] == 1]
 
-# Visualização da distribuição de renda para adimplentes e inadimplentes
-plt.figure(figsize=(10, 4))
+# Criar figura com 3 gráficos
+fig, axes = plt.subplots(1, 3, figsize=(18, 5))
 
-plt.subplot(1, 2, 1)
-plt.hist(adimplentes[Col.RENDA_ANUAL], color='purple', edgecolor='white')
-plt.title("Distribuição de Renda de Adimplentes")
-plt.xlabel("Renda (R$)")
-plt.ylabel("Frequência")
+# -----------------------------------------------------------------------
+# Gráfico 1 - Adimplentes
+# -----------------------------------------------------------------------
 
-plt.subplot(1, 2, 2)
-plt.hist(inadimplentes[Col.RENDA_ANUAL], color='orange', edgecolor='white')
-plt.title("Distribuição de Renda de Inadimplentes")
-plt.xlabel("Renda (R$)")
-plt.ylabel("Frequência")
+axes[0].hist(
+    adimplentes.renda_anual,
+    color='purple',
+    edgecolor='white'
+)
 
+axes[0].set_title("Renda de Adimplentes")
+axes[0].set_xlabel("Renda (R$)")
+axes[0].set_ylabel("Frequência")
+
+# -----------------------------------------------------------------------
+# Gráfico 2 - Inadimplentes
+# -----------------------------------------------------------------------
+
+axes[1].hist(
+    inadimplentes.renda_anual,
+    color='orange',
+    edgecolor='white'
+)
+
+axes[1].set_title("Renda de Inadimplentes")
+axes[1].set_xlabel("Renda (R$)")
+axes[1].set_ylabel("Frequência")
+
+# -----------------------------------------------------------------------
+# Gráfico 3 - Heatmap
+# -----------------------------------------------------------------------
+
+colunas = [
+    "renda_anual",
+    "idade",
+    "divida_atual",
+    "score_ajustado"
+]
+
+correlacao = df_credito[colunas].corr()
+
+cax = axes[2].matshow(
+    correlacao,
+    cmap="coolwarm"
+)
+
+# Barra lateral do heatmap
+fig.colorbar(cax, ax=axes[2], fraction=0.046, pad=0.04)
+
+axes[2].set_xticks(range(len(colunas)))
+axes[2].set_yticks(range(len(colunas)))
+
+axes[2].set_xticklabels(colunas, rotation=45)
+axes[2].set_yticklabels(colunas)
+
+# Valores da correlação
+for i in range(len(colunas)):
+    for j in range(len(colunas)):
+        axes[2].text(
+            j,
+            i,
+            f"{correlacao.iloc[i, j]:.2f}",
+            va="center",
+            ha="center"
+        )
+
+axes[2].set_title("Heatmap de Correlação")
+
+# -----------------------------------------------------------------------
+
+plt.tight_layout()
 plt.show()
